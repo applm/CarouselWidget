@@ -24,6 +24,11 @@ public class Carousel extends ViewGroup {
      */
     private float mSpacing = 0.5f;
 
+    /**
+     * Index of view in center of screen, which is most in foreground
+     */
+    private int mReverseOrderIndex = -1;
+
     private int mChildWidth = 320;
     private int mChildHeight = 320;
 
@@ -45,6 +50,8 @@ public class Carousel extends ViewGroup {
 
     public Carousel(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+
+        setChildrenDrawingOrderEnabled(true);
     }
 
     public Adapter getAdapter() {
@@ -255,6 +262,42 @@ public class Carousel extends ViewGroup {
             }
         }
 
+    }
+
+    private int getChildCenter(View v){
+        final int w = v.getRight() - v.getLeft();
+        return v.getLeft() + w/2;
+    }
+
+    private int getChildCenter(int i){
+        return getChildCenter(getChildAt(i));
+    }
+
+    @Override
+    protected int getChildDrawingOrder(int childCount, int i) {
+        final int screenCenter = getWidth()/2 + getScrollX();
+        final int myCenter = getChildCenter(i);
+        final int d = myCenter - screenCenter;
+
+        final View v = getChildAt(i);
+        final int sz = (int) (mSpacing * v.getWidth()/2f);
+
+        if(mReverseOrderIndex == -1 && (Math.abs(d) < sz || d >= 0)){
+            mReverseOrderIndex = i;
+            return childCount-1;
+        }
+
+        if(mReverseOrderIndex == -1){
+            return i;
+        }
+        else{
+            if(i == childCount-1) {
+                final int x = mReverseOrderIndex;
+                mReverseOrderIndex = -1;
+                return x;
+            }
+            return childCount - 1 - (i-mReverseOrderIndex);
+        }
     }
 
 
