@@ -93,8 +93,9 @@ public class Carousel extends ViewGroup {
         if(mAdapter == null || mAdapter.getCount() == 0){
             return;
         }
+        View v = null;
         if(getChildCount() == 0){
-            View v = mAdapter.getView(mSelection,null,this);
+            v = mAdapter.getView(mSelection,null,this);
             addAndMeasureChild(v,LAYOUT_MODE_AFTER);
 
             final int horizontalCenter = getWidth() / 2;
@@ -110,6 +111,10 @@ public class Carousel extends ViewGroup {
         }
 
         refill();
+
+        if(v != null){
+            mReverseOrderIndex = indexOfChild(v);
+        }
     }
 
 
@@ -285,152 +290,39 @@ public class Carousel extends ViewGroup {
     }
 
     @Override
-    protected int getChildDrawingOrder(int childCount, int i) {
+    protected void onScrollChanged(int l, int t, int oldl, int oldt) {
+        super.onScrollChanged(l, t, oldl, oldt);
+
+        int oldIndex = mReverseOrderIndex;
+        int newIndex;
+        if(l < oldl){
+            newIndex = oldIndex - 1;
+        } else {
+            newIndex = oldIndex + 1;
+        }
+
         final int screenCenter = getWidth()/2 + getScrollX();
-        final int myCenter = getChildCenter(i);
-        final int d = myCenter - screenCenter;
 
-        final View v = getChildAt(i);
-        final int sz = (int) (mSpacing * v.getWidth()/2f);
 
-        if(mReverseOrderIndex == -1 && (Math.abs(d) < sz || d >= 0)){
-            mReverseOrderIndex = i;
-            return childCount-1;
+        final int oldCenter = getChildCenter(oldIndex);
+        final int newCenter = getChildCenter(newIndex);
+        final int oldDif = oldCenter - screenCenter;
+        final int newDif = newCenter - screenCenter;
+
+        if(Math.abs(newDif) > Math.abs(oldDif)){
+            mReverseOrderIndex = newIndex;
         }
 
-        if(mReverseOrderIndex == -1){
+    }
+
+    @Override
+    protected int getChildDrawingOrder(int childCount, int i) {
+        if (i < mReverseOrderIndex) {
             return i;
-        }
-        else{
-            if(i == childCount-1) {
-                final int x = mReverseOrderIndex;
-                mReverseOrderIndex = -1;
-                return x;
-            }
-
+        } else {
             return childCount - 1 - (i - mReverseOrderIndex);
         }
-    }
 
-//    @Override
-//    public boolean dispatchTouchEvent(MotionEvent ev) {
-//        mReverseOrderIndex = -1;
-//        return super.dispatchTouchEvent(ev);
-//    }
-
-    @Override
-    protected void dispatchDraw(Canvas canvas) {
-        mReverseOrderIndex = -1;
-        super.dispatchDraw(canvas);
-    }
-
-    @Override
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        final int action = ev.getAction();
-        final float xf = ev.getX();
-        final float yf = ev.getY();
-        final Rect frame = mTouchRect;
-
-        if (action == MotionEvent.ACTION_DOWN) {
-            if (mMotionTarget != null) {
-                // this is weird, we got a pen down, but we thought it was
-                // already down!
-                // We should probably send an ACTION_UP to the current
-                // target.
-                mMotionTarget = null;
-            }
-            // If we're disallowing intercept or if we're allowing and we didn't
-            // intercept
-            if (!onInterceptTouchEvent(ev)) {
-                // reset this event's action (just to protect ourselves)
-                ev.setAction(MotionEvent.ACTION_DOWN);
-                // We know we want to dispatch the event down, find a child
-                // who can handle it, start with the front-most child.
-
-                final int count = getChildCount();
-                final int[] childOrder = new int[count];
-
-                mReverseOrderIndex = -1;
-                for(int i=0; i < count; i++){
-                    childOrder[i] = getChildDrawingOrder(count, i);
-                }
-
-                for(int i = count-1; i >= 0; i--) {
-                    final View child = getChildAt(childOrder[i]);
-                    if(child == null){
-                        Log.d("debug", "i:" + i + " order:" + childOrder[i]);
-                    }
-                    if (child.getVisibility() == VISIBLE
-                        || child.getAnimation() != null) {
-
-                        child.getHitRect(frame);
-
-                        if (frame.contains((int)xf, (int)yf)) {
-                            // offset the event to the view's coordinate system
-                            final float xc = xf - frame.left;
-                            final float yc = yf - frame.top;
-                            ev.setLocation(xc, yc);
-                            if (child.dispatchTouchEvent(ev))  {
-                                // Event handled, we have a target now.
-                                mMotionTarget = child;
-                                mTargetTop =  frame.top;
-                                mTargetLeft = frame.left;
-                                return true;
-                            }
-
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        boolean isUpOrCancel = (action == MotionEvent.ACTION_UP) ||
-            (action == MotionEvent.ACTION_CANCEL);
-
-
-        // The event wasn't an ACTION_DOWN, dispatch it to our target if
-        // we have one.
-        final View target = mMotionTarget;
-        if (target == null) {
-            // We don't have a target, this means we're handling the
-            // event as a regular view.
-            ev.setLocation(xf, yf);
-            return onTouchEvent(ev);
-        }
-
-        // if have a target, see if we're allowed to and want to intercept its
-        // events
-        if (onInterceptTouchEvent(ev)) {
-            final float xc = xf - mTargetLeft;
-            final float yc = yf - mTargetTop;
-            ev.setAction(MotionEvent.ACTION_CANCEL);
-            ev.setLocation(xc, yc);
-            if (!target.dispatchTouchEvent(ev)) {
-                // target didn't handle ACTION_CANCEL. not much we can do
-                // but they should have.
-            }
-            // clear the target
-            mMotionTarget = null;
-            // Don't dispatch this event to our own view, because we already
-            // saw it when intercepting; we just want to give the following
-            // event to the normal onTouchEvent().
-            return true;
-        }
-
-        if (isUpOrCancel) {
-            mMotionTarget = null;
-            mTargetTop = -1;
-            mTargetLeft = -1;
-        }
-
-        // finally offset the event to the target's coordinate system and
-        // dispatch the event.
-        final float xc = xf - mTargetLeft;
-        final float yc = yf - mTargetTop;
-        ev.setLocation(xc, yc);
-
-        return target.dispatchTouchEvent(ev);
     }
 
     /**
