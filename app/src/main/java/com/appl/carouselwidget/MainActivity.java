@@ -1,9 +1,15 @@
 package com.appl.carouselwidget;
 
-import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+
+import com.appl.library.Carousel;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -12,28 +18,45 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Carousel carousel = (Carousel)findViewById(R.id.carousel);
+        carousel.setAdapter(new MyAdapter());
+        carousel.setSelection(2);
     }
 
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
+    private class MyAdapter extends BaseAdapter {
+        private int[] mResourceIds = {R.drawable.poster1, R.drawable.poster2, R.drawable.poster3, R.drawable.poster4,
+            R.drawable.poster5};
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        @Override
+        public int getCount() {
+            return mResourceIds.length;
         }
 
-        return super.onOptionsItemSelected(item);
+        @Override
+        public Object getItem(int position) {
+            return mResourceIds[position];
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return position;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            ImageView v;
+            if (convertView == null) {
+                v = new ImageView(MainActivity.this);
+            } else {
+                v = (ImageView)convertView;
+            }
+
+            v.setImageResource(mResourceIds[position]);
+            v.setScaleType(ImageView.ScaleType.FIT_XY);
+
+            return v;
+        }
     }
 }

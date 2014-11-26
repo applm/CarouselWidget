@@ -19,8 +19,13 @@ public class Carousel extends ViewGroup {
     /** Children added with this layout mode will be added before the first child */
     protected static final int LAYOUT_MODE_TO_BEFORE = 1;
 
-    private int mChildWidth;
-    private int mChildHeight;
+    /**
+     * Relative spacing value of Views in container. If <1 Views will overlap, if >1 Views will have spaces between them
+     */
+    private float mSpacing = 0.5f;
+
+    private int mChildWidth = 320;
+    private int mChildHeight = 320;
 
     private int mSelection;
     private Adapter mAdapter;
@@ -105,14 +110,16 @@ public class Carousel extends ViewGroup {
      * @param left X coordinate where should we start layout
      */
     protected int layoutChild(View v, int left){
+        final int verticalCenter = getHeight() / 2;
+
         int l,t,r,b;
         l = left;
-        t = 0;
+        t = verticalCenter - v.getMeasuredHeight() / 2;;
         r = l + v.getMeasuredWidth();
         b = t + v.getMeasuredHeight();
 
         v.layout(l, t, r, b);
-        return r;
+        return l + (int)(v.getMeasuredWidth() * mSpacing);
     }
 
     /**
@@ -123,8 +130,8 @@ public class Carousel extends ViewGroup {
      * @return child which was actually added to container, subclasses can override to introduce frame views
      */
     protected View addAndMeasureChild(final View child, final int layoutMode) {
-//        if(child.getLayoutParams() == null) child.setLayoutParams(new LayoutParams(mChildWidth,
-//            mChildHeight));
+        if(child.getLayoutParams() == null) child.setLayoutParams(new LayoutParams(mChildWidth,
+            mChildHeight));
 
         final int index = layoutMode == LAYOUT_MODE_TO_BEFORE ? 0 : -1;
         addViewInLayout(child, index, child.getLayoutParams(), true);
@@ -159,7 +166,7 @@ public class Carousel extends ViewGroup {
 
         View child = getChildAt(0);
         int childLeft = child.getLeft();
-        int lastLeft = childLeft;
+        int lastLeft = childLeft + (int) (mChildWidth * mSpacing);
 
         while(lastLeft > leftScreenEdge && mFirstVisibleChild > 0){
             mFirstVisibleChild--;
@@ -179,14 +186,9 @@ public class Carousel extends ViewGroup {
 
         View child;
         int lastRight;
-        if(getChildCount() != 0){
-            child = getChildAt(getChildCount() - 1);
-            lastRight = child.getRight();
-        }
-        else{
-            lastRight = leftScreenEdge;
-            if(mLastVisibleChild == mFirstVisibleChild) mLastVisibleChild--;
-        }
+
+        child = getChildAt(getChildCount() - 1);
+        lastRight = child.getRight() - (int) (mChildWidth * mSpacing);
 
         while(lastRight < rightScreenEdge && mLastVisibleChild < mAdapter.getCount()-1){
             mLastVisibleChild++;
@@ -256,7 +258,21 @@ public class Carousel extends ViewGroup {
     }
 
 
+    /**
+     * Set widget spacing (float means fraction of widget size, 1 = widget size)
+     * @param spacing the spacing to set
+     */
+    public void setSpacing(float spacing) {
+        this.mSpacing = spacing;
+    }
 
+    public void setChildWidth(int width){
+        mChildWidth = width;
+    }
+
+    public void setChildHeight(int height){
+        mChildHeight = height;
+    }
 
     public static class ViewCache <T extends View> {
         private final LinkedList<WeakReference<T>> mCachedItemViews = new LinkedList<WeakReference<T>>();
