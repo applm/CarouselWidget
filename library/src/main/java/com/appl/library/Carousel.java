@@ -9,20 +9,39 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 import android.widget.Adapter;
+import android.widget.Scroller;
 
 /**
  * @author Martin Appl
  */
 public class Carousel extends ViewGroup {
+    protected final int NO_VALUE = -11;
+
     /** Children added with this layout mode will be added after the last child */
     protected static final int LAYOUT_MODE_AFTER = 0;
 
     /** Children added with this layout mode will be added before the first child */
     protected static final int LAYOUT_MODE_TO_BEFORE = 1;
+
+    /** User is not touching the list */
+    protected static final int TOUCH_STATE_RESTING = 0;
+
+    /** User is scrolling the list */
+    protected static final int TOUCH_STATE_SCROLLING = 1;
+
+    /** Fling gesture in progress */
+    protected static final int TOUCH_STATE_FLING = 2;
+
+    private final Scroller mScroller = new Scroller(getContext());
+    private VelocityTracker mVelocityTracker;
+    protected int mTouchSlop;
+    private int mMinimumVelocity;
+    private int mMaximumVelocity;
+    private float mLastMotionX;
+
+    private int mTouchState = TOUCH_STATE_RESTING;
 
     /**
      * Relative spacing value of Views in container. If <1 Views will overlap, if >1 Views will have spaces between them
@@ -45,10 +64,7 @@ public class Carousel extends ViewGroup {
 
     private final ViewCache<View> mCache = new ViewCache<>();
 
-    private final Rect mTouchRect = new Rect();
-    private View mMotionTarget;
-    private float mTargetLeft;
-    private float mTargetTop;
+    protected int mRightEdge = NO_VALUE;
 
     public Carousel(Context context) {
         this(context, null);
@@ -62,6 +78,10 @@ public class Carousel extends ViewGroup {
         super(context, attrs, defStyleAttr);
 
         setChildrenDrawingOrderEnabled(true);
+        final ViewConfiguration configuration = ViewConfiguration.get(context);
+        mTouchSlop = configuration.getScaledTouchSlop();
+        mMinimumVelocity = configuration.getScaledMinimumFlingVelocity();
+        mMaximumVelocity = configuration.getScaledMaximumFlingVelocity();
     }
 
     public Adapter getAdapter() {
@@ -87,6 +107,41 @@ public class Carousel extends ViewGroup {
 
         mSelection = position;
     }
+
+    @Override
+    public void computeScroll() {
+        if(mRightEdge != NO_VALUE && mScroller.getFinalX() > mRightEdge - getWidth() + 1){
+            mScroller.setFinalX(mRightEdge - getWidth() + 1);
+        }
+
+        if(mRightEdge != NO_VALUE && getScrollX() > mRightEdge - getWidth()) {
+            if(mRightEdge - getWidth() > 0) scrollTo(mRightEdge - getWidth(), 0);
+            else scrollTo(0, 0);
+            return;
+        }
+
+        if (mScroller.computeScrollOffset()) {
+            if(mScroller.getFinalX() == mScroller.getCurrX()){
+                mScroller.abortAnimation();
+                mTouchState = TOUCH_STATE_RESTING;
+                clearChildrenCache();
+            }
+            else{
+                final int x = mScroller.getCurrX();
+                scrollTo(x, 0);
+
+                postInvalidate();
+            }
+        }
+        else if(mTouchState == TOUCH_STATE_FLING){
+            mTouchState = TOUCH_STATE_RESTING;
+            clearChildrenCache();
+        }
+
+        refill();
+    }
+
+
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
@@ -166,6 +221,35 @@ public class Carousel extends ViewGroup {
         return child;
     }
 
+    /**
+     * Remove all data, reset to initial state and attempt to refill
+     */
+    private void reset() {
+        if(getChildCount() == 0 || mReverseOrderIndex == -1){
+            return;
+        }
+        View selectedView = getChildAt(mReverseOrderIndex);
+        int selectedLeft = selectedView.getLeft();
+        int selectedTop = selectedView.getTop();
+
+        removeAllViewsInLayout();
+        mRightEdge = NO_VALUE;
+
+        View v = mAdapter.getView(mSelection,null,this);
+        addAndMeasureChild(v,LAYOUT_MODE_AFTER);
+
+        final int right = selectedLeft + v.getMeasuredWidth();
+        final int bottom = selectedTop + v.getMeasuredHeight();
+        v.layout(selectedLeft,selectedTop,right,bottom);
+
+        mFirstVisibleChild = mSelection;
+        mLastVisibleChild = mSelection;
+
+        refill();
+
+        mReverseOrderIndex = indexOfChild(v);
+    }
+
     protected void refill(){
         if(mAdapter == null) return;
 
@@ -220,6 +304,10 @@ public class Carousel extends ViewGroup {
 
             addAndMeasureChild(child, LAYOUT_MODE_AFTER);
             lastRight = layoutChild(child, lastRight);
+
+            if(mLastVisibleChild >= mAdapter.getCount()-1) {
+                mRightEdge = lastRight;
+            }
         }
     }
 
@@ -290,29 +378,33 @@ public class Carousel extends ViewGroup {
     }
 
     @Override
-    protected void onScrollChanged(int l, int t, int oldl, int oldt) {
-        super.onScrollChanged(l, t, oldl, oldt);
-
-        int oldIndex = mReverseOrderIndex;
-        int newIndex;
-        if(l < oldl){
-            newIndex = oldIndex - 1;
-        } else {
-            newIndex = oldIndex + 1;
-        }
-
+    protected void dispatchDraw(Canvas canvas) {
         final int screenCenter = getWidth()/2 + getScrollX();
 
-
+        int oldIndex = mReverseOrderIndex;
         final int oldCenter = getChildCenter(oldIndex);
-        final int newCenter = getChildCenter(newIndex);
         final int oldDif = oldCenter - screenCenter;
-        final int newDif = newCenter - screenCenter;
 
-        if(Math.abs(newDif) > Math.abs(oldDif)){
-            mReverseOrderIndex = newIndex;
+        int newIndexLeft = oldIndex - 1;
+        int newIndexRigth = oldIndex + 1;
+
+        if(newIndexLeft >= 0){
+            final int newCenterLeft = getChildCenter(newIndexLeft);
+            final int newDifLeft = newCenterLeft - screenCenter;
+            if(Math.abs(newDifLeft) < Math.abs(oldDif)){
+                mReverseOrderIndex = newIndexLeft;
+            }
         }
 
+        if(newIndexRigth < getChildCount()){
+            final int newCenterRight = getChildCenter(newIndexLeft);
+            final int newDifRight = newCenterRight - screenCenter;
+            if(Math.abs(newDifRight) < Math.abs(oldDif)){
+                mReverseOrderIndex = newIndexRigth;
+            }
+        }
+
+        super.dispatchDraw(canvas);
     }
 
     @Override
@@ -323,6 +415,204 @@ public class Carousel extends ViewGroup {
             return childCount - 1 - (i - mReverseOrderIndex);
         }
 
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+
+        /*
+         * This method JUST determines whether we want to intercept the motion.
+         * If we return true, onTouchEvent will be called and we do the actual
+         * scrolling there.
+         */
+
+
+        /*
+         * Shortcut the most recurring case: the user is in the dragging
+         * state and he is moving his finger.  We want to intercept this
+         * motion.
+         */
+        final int action = ev.getAction();
+        if ((action == MotionEvent.ACTION_MOVE) && (mTouchState == TOUCH_STATE_SCROLLING)) {
+            return true;
+        }
+
+        final float x = ev.getX();
+        final float y = ev.getY();
+        switch (action) {
+            case MotionEvent.ACTION_MOVE:
+            	/*
+                 * not dragging, otherwise the shortcut would have caught it. Check
+                 * whether the user has moved far enough from his original down touch.
+                 */
+
+                /*
+                 * Locally do absolute value. mLastMotionX is set to the x value
+                 * of the down event.
+                 */
+                final int xDiff = (int) Math.abs(x - mLastMotionX);
+
+                final int touchSlop = mTouchSlop;
+                final boolean xMoved = xDiff > touchSlop;
+
+                if (xMoved) {
+                    // Scroll if the user moved far enough along the axis
+                    mTouchState = TOUCH_STATE_SCROLLING;
+                    enableChildrenCache();
+                    cancelLongPress();
+                }
+
+                break;
+
+            case MotionEvent.ACTION_DOWN:
+                // Remember location of down touch
+                mLastMotionX = x;
+
+                /*
+                 * If being flinged and user touches the screen, initiate drag;
+                 * otherwise don't.  mScroller.isFinished should be false when
+                 * being flinged.
+                 */
+                mTouchState = mScroller.isFinished() ? TOUCH_STATE_RESTING : TOUCH_STATE_SCROLLING;
+                break;
+
+            case MotionEvent.ACTION_UP:
+                mTouchState = TOUCH_STATE_RESTING;
+                clearChildrenCache();
+                break;
+        }
+
+        return mTouchState == TOUCH_STATE_SCROLLING;
+
+    }
+
+    protected void scrollByDelta(int deltaX){
+        final int rightInPixels;
+        if(mRightEdge == NO_VALUE) rightInPixels = Integer.MAX_VALUE;
+        else {
+            rightInPixels = mRightEdge;
+            if(getScrollX() > mRightEdge - getWidth()) {
+                if(mRightEdge - getWidth() > 0) scrollTo(mRightEdge - getWidth(), 0);
+                else scrollTo(0, 0);
+                return;
+            }
+        }
+
+        final int x = getScrollX() + deltaX;
+
+        if(x < 0 ) deltaX -= x;
+        else if(x > rightInPixels - getWidth()) deltaX -= x - (rightInPixels - getWidth());
+
+        scrollBy(deltaX, 0);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        if (mVelocityTracker == null) {
+            mVelocityTracker = VelocityTracker.obtain();
+        }
+        mVelocityTracker.addMovement(event);
+
+        final int action = event.getAction();
+        final float x = event.getX();
+        final float y = event.getY();
+
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+            /*
+             * If being flinged and user touches, stop the fling. isFinished
+             * will be false if being flinged.
+             */
+                if (!mScroller.isFinished()) {
+                    mScroller.forceFinished(true);
+                }
+
+                // Remember where the motion event started
+                mLastMotionX = x;
+
+                break;
+            case MotionEvent.ACTION_MOVE:
+
+                if (mTouchState == TOUCH_STATE_SCROLLING) {
+                    // Scroll to follow the motion event
+                    final int deltaX = (int) (mLastMotionX - x);
+                    mLastMotionX = x;
+
+                    scrollByDelta(deltaX);
+                }
+                else{
+                    final int xDiff = (int) Math.abs(x - mLastMotionX);
+
+                    final int touchSlop = mTouchSlop;
+                    final boolean xMoved = xDiff > touchSlop;
+
+
+                    if (xMoved) {
+                        // Scroll if the user moved far enough along the axis
+                        mTouchState = TOUCH_STATE_SCROLLING;
+                        enableChildrenCache();
+                        cancelLongPress();
+                    }
+                }
+                break;
+            case MotionEvent.ACTION_UP:
+                //if we had normal down click and we haven't moved enough to initiate drag, take action as a click on down coordinates
+                if (mTouchState == TOUCH_STATE_SCROLLING) {
+
+                    mVelocityTracker.computeCurrentVelocity(1000, mMaximumVelocity);
+                    int initialXVelocity = (int) mVelocityTracker.getXVelocity();
+                    int initialYVelocity = (int) mVelocityTracker.getYVelocity();
+
+                    if (Math.abs(initialXVelocity) + Math.abs(initialYVelocity) > mMinimumVelocity) {
+                        fling(-initialXVelocity, -initialYVelocity);
+                    }
+                    else{
+                        // Release the drag
+                        clearChildrenCache();
+                        mTouchState = TOUCH_STATE_RESTING;
+                    }
+
+                    if (mVelocityTracker != null) {
+                        mVelocityTracker.recycle();
+                        mVelocityTracker = null;
+                    }
+
+                    break;
+                }
+
+                // Release the drag
+                clearChildrenCache();
+                mTouchState = TOUCH_STATE_RESTING;
+
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                mTouchState = TOUCH_STATE_RESTING;
+        }
+
+        return true;
+    }
+
+    public void fling(int velocityX, int velocityY){
+        mTouchState = TOUCH_STATE_FLING;
+        final int x = getScrollX();
+        final int y = getScrollY();
+
+        final int rightInPixels;
+        if(mRightEdge == NO_VALUE) rightInPixels = Integer.MAX_VALUE;
+        else rightInPixels = mRightEdge;
+
+        mScroller.fling(x, y, velocityX, velocityY, 0,rightInPixels - getWidth() + 1,0,0);
+
+        invalidate();
+    }
+
+    private void enableChildrenCache() {
+        setChildrenDrawnWithCacheEnabled(true);
+        setChildrenDrawingCacheEnabled(true);
+    }
+
+    private void clearChildrenCache() {
+        setChildrenDrawnWithCacheEnabled(false);
     }
 
     /**
