@@ -23,7 +23,7 @@ public class MainActivity extends ActionBarActivity {
         Carousel carousel = (Carousel)findViewById(R.id.carousel);
         Adapter adapter = new MyAdapter();
         carousel.setAdapter(adapter);
-        carousel.setSelection(adapter.getCount()-1);
+        carousel.setSelection(adapter.getCount()-1); //adapter.getCount()-1
     }
 
 

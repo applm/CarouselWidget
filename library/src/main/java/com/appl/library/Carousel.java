@@ -230,15 +230,20 @@ public class Carousel extends ViewGroup {
 //        }
     }
 
-
-
     /**
      *  Layout children from right to left
      */
     protected int layoutChildToBefore(View v, int right){
-        int left = right - v.getMeasuredWidth();
-        left = layoutChild(v, left);
-        return left;
+        final int verticalCenter = getHeight() / 2;
+
+        int l,t,r,b;
+        l = right - v.getMeasuredWidth();
+        t = verticalCenter - v.getMeasuredHeight() / 2;;
+        r = right;
+        b = t + v.getMeasuredHeight();
+
+        v.layout(l, t, r, b);
+        return r - (int)(v.getMeasuredWidth() * mSpacing);
     }
 
     /**
