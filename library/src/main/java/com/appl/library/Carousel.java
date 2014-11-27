@@ -140,6 +140,7 @@ public class Carousel extends ViewGroup {
         }
 
         refill();
+        updateReverseOrderIndex();
     }
 
 
@@ -170,7 +171,63 @@ public class Carousel extends ViewGroup {
 
         if(v != null){
             mReverseOrderIndex = indexOfChild(v);
+        } else {
+            updateReverseOrderIndex();
         }
+    }
+
+    private void updateReverseOrderIndex(){
+        final int screenCenter = getWidth()/2 + getScrollX();
+        final int c = getChildCount();
+
+        int minDiff = Integer.MAX_VALUE;
+        int minDiffIndex = -1;
+
+        int viewCenter, diff;
+        for(int i=0; i < c; i++){
+            viewCenter = getChildCenter(i);
+            diff = Math.abs(screenCenter - viewCenter);
+            if(diff < minDiff){
+                minDiff = diff;
+                minDiffIndex = i;
+            }
+        }
+
+        mReverseOrderIndex = minDiffIndex;
+
+
+//        final int screenCenter = getWidth()/2 + getScrollX();
+//
+//        if(mReverseOrderIndex >= getChildCount()){
+//            mReverseOrderIndex = getChildCount() - 1;
+//        }
+//        if(mReverseOrderIndex < 0){
+//            mReverseOrderIndex = 0;
+//        }
+//        int oldIndex = mReverseOrderIndex;
+//        final int oldCenter = getChildCenter(oldIndex);
+//        final int oldDif = Math.abs(oldCenter - screenCenter);
+//
+//        int newIndexLeft = oldIndex - 1;
+//        int newIndexRigth = oldIndex + 1;
+//
+//        int newDifLeft = Integer.MAX_VALUE;
+//        int newDifRight = Integer.MAX_VALUE;
+//        if(newIndexLeft >= 0){
+//            final int newCenterLeft = getChildCenter(newIndexLeft);
+//            newDifLeft = newCenterLeft - screenCenter;
+//            if(Math.abs(newDifLeft) < Math.abs(oldDif)){
+//                mReverseOrderIndex = newIndexLeft;
+//            }
+//        }
+//
+//        if(newIndexRigth < getChildCount()){
+//            final int newCenterRight = getChildCenter(newIndexLeft);
+//            newDifRight = newCenterRight - screenCenter;
+//            if(Math.abs(newDifRight) < Math.abs(oldDif)){
+//                mReverseOrderIndex = newIndexRigth;
+//            }
+//        }
     }
 
 
@@ -386,38 +443,6 @@ public class Carousel extends ViewGroup {
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
-        final int screenCenter = getWidth()/2 + getScrollX();
-
-
-        if(mReverseOrderIndex >= getChildCount()){
-            mReverseOrderIndex = getChildCount() - 1;
-        }
-        if(mReverseOrderIndex < 0){
-            mReverseOrderIndex = 0;
-        }
-        int oldIndex = mReverseOrderIndex;
-        final int oldCenter = getChildCenter(oldIndex);
-        final int oldDif = oldCenter - screenCenter;
-
-        int newIndexLeft = oldIndex - 1;
-        int newIndexRigth = oldIndex + 1;
-
-        if(newIndexLeft >= 0){
-            final int newCenterLeft = getChildCenter(newIndexLeft);
-            final int newDifLeft = newCenterLeft - screenCenter;
-            if(Math.abs(newDifLeft) < Math.abs(oldDif)){
-                mReverseOrderIndex = newIndexLeft;
-            }
-        }
-
-        if(newIndexRigth < getChildCount()){
-            final int newCenterRight = getChildCenter(newIndexLeft);
-            final int newDifRight = newCenterRight - screenCenter;
-            if(Math.abs(newDifRight) < Math.abs(oldDif)){
-                mReverseOrderIndex = newIndexRigth;
-            }
-        }
-
         super.dispatchDraw(canvas);
     }
 
