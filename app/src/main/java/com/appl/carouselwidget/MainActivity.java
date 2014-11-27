@@ -6,6 +6,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Adapter;
 import android.widget.BaseAdapter;
 import android.widget.ImageView;
 
@@ -20,8 +21,9 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         Carousel carousel = (Carousel)findViewById(R.id.carousel);
-        carousel.setAdapter(new MyAdapter());
-        carousel.setSelection(2);
+        Adapter adapter = new MyAdapter();
+        carousel.setAdapter(adapter);
+        carousel.setSelection(adapter.getCount()-1);
     }
 
 
@@ -31,12 +33,12 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         public int getCount() {
-            return mResourceIds.length;
+            return mResourceIds.length * 5;
         }
 
         @Override
         public Object getItem(int position) {
-            return mResourceIds[position];
+            return mResourceIds[position % mResourceIds.length];
         }
 
         @Override
@@ -53,7 +55,7 @@ public class MainActivity extends ActionBarActivity {
                 v = (ImageView)convertView;
             }
 
-            v.setImageResource(mResourceIds[position]);
+            v.setImageResource(mResourceIds[position % mResourceIds.length]);
             v.setScaleType(ImageView.ScaleType.FIT_XY);
 
             return v;

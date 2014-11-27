@@ -65,6 +65,7 @@ public class Carousel extends ViewGroup {
     private final ViewCache<View> mCache = new ViewCache<>();
 
     protected int mRightEdge = NO_VALUE;
+    protected int mLeftEdge = NO_VALUE;
 
     public Carousel(Context context) {
         this(context, null);
@@ -234,6 +235,7 @@ public class Carousel extends ViewGroup {
 
         removeAllViewsInLayout();
         mRightEdge = NO_VALUE;
+        mLeftEdge = NO_VALUE;
 
         View v = mAdapter.getView(mSelection,null,this);
         addAndMeasureChild(v,LAYOUT_MODE_AFTER);
@@ -241,6 +243,7 @@ public class Carousel extends ViewGroup {
         final int right = selectedLeft + v.getMeasuredWidth();
         final int bottom = selectedTop + v.getMeasuredHeight();
         v.layout(selectedLeft,selectedTop,right,bottom);
+
 
         mFirstVisibleChild = mSelection;
         mLastVisibleChild = mSelection;
@@ -281,6 +284,10 @@ public class Carousel extends ViewGroup {
 
             addAndMeasureChild(child, LAYOUT_MODE_TO_BEFORE);
             lastLeft = layoutChildToBefore(child, lastLeft);
+
+            if(mFirstVisibleChild <= 0) {
+                mLeftEdge = lastLeft;
+            }
         }
         return;
     }
@@ -381,6 +388,13 @@ public class Carousel extends ViewGroup {
     protected void dispatchDraw(Canvas canvas) {
         final int screenCenter = getWidth()/2 + getScrollX();
 
+
+        if(mReverseOrderIndex >= getChildCount()){
+            mReverseOrderIndex = getChildCount() - 1;
+        }
+        if(mReverseOrderIndex < 0){
+            mReverseOrderIndex = 0;
+        }
         int oldIndex = mReverseOrderIndex;
         final int oldCenter = getChildCenter(oldIndex);
         final int oldDif = oldCenter - screenCenter;
@@ -488,20 +502,34 @@ public class Carousel extends ViewGroup {
 
     protected void scrollByDelta(int deltaX){
         final int rightInPixels;
-        if(mRightEdge == NO_VALUE) rightInPixels = Integer.MAX_VALUE;
-        else {
+        final int leftInPixels;
+        if(mRightEdge == NO_VALUE){
+            rightInPixels = Integer.MAX_VALUE;
+        } else {
             rightInPixels = mRightEdge;
             if(getScrollX() > mRightEdge - getWidth()) {
-                if(mRightEdge - getWidth() > 0) scrollTo(mRightEdge - getWidth(), 0);
-                else scrollTo(0, 0);
+                scrollTo(mRightEdge - getWidth(), 0);
+                return;
+            }
+        }
+
+        if(mLeftEdge == NO_VALUE){
+            leftInPixels = Integer.MIN_VALUE;
+        } else {
+            leftInPixels = mLeftEdge;
+            if(getScrollX() < mLeftEdge){
+                scrollTo(mLeftEdge, 0);
                 return;
             }
         }
 
         final int x = getScrollX() + deltaX;
 
-        if(x < 0 ) deltaX -= x;
-        else if(x > rightInPixels - getWidth()) deltaX -= x - (rightInPixels - getWidth());
+        if(x < leftInPixels){
+            deltaX -= x - leftInPixels;
+        } else if(x > rightInPixels - getWidth()){
+            deltaX -= x - (rightInPixels - getWidth());
+        }
 
         scrollBy(deltaX, 0);
     }
