@@ -5,8 +5,6 @@ import java.util.LinkedList;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.Rect;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.*;
@@ -195,6 +193,7 @@ public class Carousel extends ViewGroup {
     }
 
     private void updateReverseOrderIndex(){
+        int oldReverseIndex = mReverseOrderIndex;
         final int screenCenter = getWidth()/2 + getScrollX();
         final int c = getChildCount();
 
@@ -211,7 +210,21 @@ public class Carousel extends ViewGroup {
             }
         }
 
-        mReverseOrderIndex = minDiffIndex;
+        if(minDiff != Integer.MAX_VALUE) {
+            mReverseOrderIndex = minDiffIndex;
+        }
+//        //check for case in which last update was done with more elements and one element was removed in meantime
+//        if(oldReverseIndex > getChildCount() - 1){
+//            oldReverseIndex = getChildCount() - 1;
+//        }
+
+        if(oldReverseIndex != mReverseOrderIndex){
+            View oldSelected = getChildAt(oldReverseIndex);
+            View newSelected = getChildAt(mReverseOrderIndex);
+
+            oldSelected.setSelected(false);
+            newSelected.setSelected(true);
+        }
 
 
 //        final int screenCenter = getWidth()/2 + getScrollX();
@@ -372,6 +385,8 @@ public class Carousel extends ViewGroup {
             mFirstVisibleChild--;
 
             child = mAdapter.getView(mFirstVisibleChild, mCache.getCachedView(), this);
+            child.setSelected(false);
+            mReverseOrderIndex++;
 
             addAndMeasureChild(child, LAYOUT_MODE_TO_BEFORE);
             lastLeft = layoutChildToBefore(child, lastLeft);
@@ -399,6 +414,7 @@ public class Carousel extends ViewGroup {
             mLastVisibleChild++;
 
             child = mAdapter.getView(mLastVisibleChild, mCache.getCachedView(), this);
+            child.setSelected(false);
 
             addAndMeasureChild(child, LAYOUT_MODE_AFTER);
             lastRight = layoutChild(child, lastRight);
@@ -427,6 +443,7 @@ public class Carousel extends ViewGroup {
             mCache.cacheView(firstChild);
 
             mFirstVisibleChild++;
+            mReverseOrderIndex--;
 
             // Continue to check the next child only if we have more than
             // one child left

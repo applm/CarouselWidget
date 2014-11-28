@@ -1,13 +1,17 @@
 package com.appl.carouselwidget;
 
+import android.content.Context;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.util.AttributeSet;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Adapter;
 import android.widget.BaseAdapter;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import com.appl.library.Carousel;
@@ -48,17 +52,47 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            ImageView v;
+            MyFrame v;
             if (convertView == null) {
-                v = new ImageView(MainActivity.this);
+                v = new MyFrame(MainActivity.this);
             } else {
-                v = (ImageView)convertView;
+                v = (MyFrame)convertView;
             }
 
             v.setImageResource(mResourceIds[position % mResourceIds.length]);
-            v.setScaleType(ImageView.ScaleType.FIT_XY);
+
 
             return v;
+        }
+    }
+
+    public static class MyFrame extends FrameLayout{
+        private ImageView mImageView;
+
+        public void setImageResource(int resId){
+            mImageView.setImageResource(resId);
+        }
+
+        public MyFrame(Context context) {
+            super(context);
+
+            mImageView = new ImageView(context);
+            mImageView.setScaleType(ImageView.ScaleType.FIT_XY);
+            addView(mImageView);
+
+            setBackgroundColor(Color.WHITE);
+            setSelected(false);
+        }
+
+        @Override
+        public void setSelected(boolean selected) {
+            super.setSelected(selected);
+
+            if(selected) {
+                mImageView.setAlpha(1.0f);
+            } else {
+                mImageView.setAlpha(0.5f);
+            }
         }
     }
 }
