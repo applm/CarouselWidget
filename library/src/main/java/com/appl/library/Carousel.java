@@ -15,7 +15,7 @@ import android.widget.Scroller;
  * @author Martin Appl
  */
 public class Carousel extends ViewGroup {
-    protected final int NO_VALUE = -11;
+    protected final int NO_VALUE = Integer.MIN_VALUE + 1777;
 
     /** Children added with this layout mode will be added after the last child */
     protected static final int LAYOUT_MODE_AFTER = 0;
@@ -44,12 +44,16 @@ public class Carousel extends ViewGroup {
     /**
      * Relative spacing value of Views in container. If <1 Views will overlap, if >1 Views will have spaces between them
      */
-    private float mSpacing = 0.75f;
+    private float mSpacing = 0.5f;
 
     /**
      * Index of view in center of screen, which is most in foreground
      */
     private int mReverseOrderIndex = -1;
+    /**
+     * Movement speed will be divided by this coefficient;
+     */
+    private int mSlowDownCoefficient = 1;
 
     private int mChildWidth = 320;
     private int mChildHeight = 320;
@@ -117,12 +121,12 @@ public class Carousel extends ViewGroup {
         final int centerItemLeft = getWidth() / 2 - mChildWidth / 2;
         final int centerItemRight = getWidth() / 2 + mChildWidth / 2;
 
-//        if(mRightEdge != NO_VALUE && mScroller.getFinalX() > mRightEdge - centerItemRight){
-//            mScroller.setFinalX(mRightEdge - centerItemRight);
-//        }
-//        if(mLeftEdge != NO_VALUE && mScroller.getFinalX() < mLeftEdge - centerItemLeft){
-//            mScroller.setFinalX(mLeftEdge - centerItemLeft);
-//        }
+        if(mRightEdge != NO_VALUE && mScroller.getFinalX() > mRightEdge - centerItemRight){
+            mScroller.setFinalX(mRightEdge - centerItemRight);
+        }
+        if(mLeftEdge != NO_VALUE && mScroller.getFinalX() < mLeftEdge - centerItemLeft){
+            mScroller.setFinalX(mLeftEdge - centerItemLeft);
+        }
 
 //        if(mRightEdge != NO_VALUE && getScrollX() > mRightEdge - getWidth()) {
 //            if(mRightEdge - getWidth() > 0) scrollTo(mRightEdge - getWidth(), 0);
@@ -187,6 +191,7 @@ public class Carousel extends ViewGroup {
 
         if(v != null){
             mReverseOrderIndex = indexOfChild(v);
+            v.setSelected(true);
         } else {
             updateReverseOrderIndex();
         }
@@ -351,6 +356,7 @@ public class Carousel extends ViewGroup {
         refill();
 
         mReverseOrderIndex = indexOfChild(v);
+        v.setSelected(true);
     }
 
     protected void refill(){
@@ -445,6 +451,10 @@ public class Carousel extends ViewGroup {
             mFirstVisibleChild++;
             mReverseOrderIndex--;
 
+            if(mReverseOrderIndex == 0){
+                break;
+            }
+
             // Continue to check the next child only if we have more than
             // one child left
             if (getChildCount() > 1) {
@@ -471,6 +481,9 @@ public class Carousel extends ViewGroup {
             mCache.cacheView(lastChild);
 
             mLastVisibleChild--;
+            if(getChildCount() - 1 == mReverseOrderIndex){
+                break;
+            }
 
             // Continue to check the next child only if we have more than
             // one child left
@@ -734,6 +747,10 @@ public class Carousel extends ViewGroup {
 
     public void setChildHeight(int height){
         mChildHeight = height;
+    }
+
+    public void setSlowDownCoefficient(int c){
+        mSlowDownCoefficient = c;
     }
 
     public static class ViewCache <T extends View> {
