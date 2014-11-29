@@ -590,6 +590,8 @@ public class Carousel extends ViewGroup {
     }
 
     protected void scrollByDelta(int deltaX){
+        deltaX /= mSlowDownCoefficient;
+
         final int centerItemLeft = getWidth() / 2 - mChildWidth / 2;
         final int centerItemRight = getWidth() / 2 + mChildWidth / 2;
 
@@ -705,6 +707,8 @@ public class Carousel extends ViewGroup {
     }
 
     public void fling(int velocityX, int velocityY){
+        velocityX /= mSlowDownCoefficient;
+
         mTouchState = TOUCH_STATE_FLING;
         final int x = getScrollX();
         final int y = getScrollY();

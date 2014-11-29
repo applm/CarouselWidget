@@ -3,6 +3,7 @@ package com.appl.carouselwidget;
 import android.content.Context;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.util.AttributeSet;
 import android.view.Menu;
@@ -28,6 +29,8 @@ public class MainActivity extends ActionBarActivity {
         Adapter adapter = new MyAdapter();
         carousel.setAdapter(adapter);
         carousel.setSelection(adapter.getCount()-1); //adapter.getCount()-1
+        carousel.setSlowDownCoefficient(2);
+        carousel.setSpacing(0.2f);
     }
 
 
