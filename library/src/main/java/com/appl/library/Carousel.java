@@ -12,7 +12,7 @@ import android.widget.Adapter;
 import android.widget.Scroller;
 
 /**
- * @author Martin Appl
+ * @author Martin Appl (appl.m@seznam.cz)
  */
 public class Carousel extends ViewGroup {
     protected final int NO_VALUE = Integer.MIN_VALUE + 1777;
@@ -96,7 +96,7 @@ public class Carousel extends ViewGroup {
     }
 
     public View getSelectedView() {
-        return null; //todo implement
+        return getChildAt(mReverseOrderIndex);
     }
 
     public int getSelection(){
@@ -229,6 +229,8 @@ public class Carousel extends ViewGroup {
 
             oldSelected.setSelected(false);
             newSelected.setSelected(true);
+
+            mSelection = mFirstVisibleChild + mReverseOrderIndex;
         }
 
 
