@@ -4,6 +4,7 @@ import java.lang.ref.WeakReference;
 import java.util.LinkedList;
 
 import android.content.Context;
+import android.database.DataSetObserver;
 import android.graphics.Canvas;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -41,6 +42,22 @@ public class Carousel extends ViewGroup {
     private float mLastMotionX;
 
     private int mTouchState = TOUCH_STATE_RESTING;
+
+    private final DataSetObserver mDataObserver = new DataSetObserver() {
+
+        @Override
+        public void onChanged() {
+            reset();
+//            invalidate();
+        }
+
+        @Override
+        public void onInvalidated() {
+            removeAllViews();
+            invalidate();
+        }
+
+    };
 
     /**
      * Relative spacing value of Views in container. If <1 Views will overlap, if >1 Views will have spaces between them
@@ -95,7 +112,12 @@ public class Carousel extends ViewGroup {
     }
 
     public void setAdapter(Adapter adapter) {
+        if(mAdapter != null) {
+            mAdapter.unregisterDataSetObserver(mDataObserver);
+        }
         mAdapter = adapter;
+        mAdapter.registerDataSetObserver(mDataObserver);
+        reset();
     }
 
     public View getSelectedView() {
@@ -232,6 +254,7 @@ public class Carousel extends ViewGroup {
             newSelected.setSelected(true);
 
             mSelection = mFirstVisibleChild + mReverseOrderIndex;
+            Log.d("debug","selection:" + mSelection);
             if(mOnItemSelectedListener != null){
                 mOnItemSelectedListener.onItemSelected(newSelected, mSelection);
             }
@@ -330,7 +353,7 @@ public class Carousel extends ViewGroup {
      * Remove all data, reset to initial state and attempt to refill
      */
     private void reset() {
-        if(getChildCount() == 0 || mReverseOrderIndex == -1){
+        if(getChildCount() == 0 || mReverseOrderIndex < 0){
             return;
         }
         View selectedView = getChildAt(mReverseOrderIndex);
@@ -343,11 +366,11 @@ public class Carousel extends ViewGroup {
 
         View v = mAdapter.getView(mSelection,null,this);
         addAndMeasureChild(v,LAYOUT_MODE_AFTER);
+        mReverseOrderIndex = 0;
 
         final int right = selectedLeft + v.getMeasuredWidth();
         final int bottom = selectedTop + v.getMeasuredHeight();
         v.layout(selectedLeft,selectedTop,right,bottom);
-
 
         mFirstVisibleChild = mSelection;
         mLastVisibleChild = mSelection;
@@ -366,17 +389,13 @@ public class Carousel extends ViewGroup {
     }
 
     protected void refill(){
-        if(mAdapter == null) return;
+        if(mAdapter == null || getChildCount() == 0) return;
 
         final int leftScreenEdge = getScrollX();
         int rightScreenEdge = leftScreenEdge + getWidth();
 
         removeNonVisibleViewsLeftToRight(leftScreenEdge);
         removeNonVisibleViewsRightToLeft(rightScreenEdge);
-
-        if(getChildCount() == 0){
-            Log.wtf("debug","zero children");
-        }
 
         refillLeftToRight(leftScreenEdge, rightScreenEdge);
         refillRightToLeft(leftScreenEdge);

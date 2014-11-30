@@ -10,10 +10,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Adapter;
-import android.widget.BaseAdapter;
-import android.widget.FrameLayout;
-import android.widget.ImageView;
+import android.widget.*;
 
 import com.appl.library.Carousel;
 
@@ -26,11 +23,19 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
 
         Carousel carousel = (Carousel)findViewById(R.id.carousel);
-        Adapter adapter = new MyAdapter();
+        final MyAdapter adapter = new MyAdapter();
         carousel.setAdapter(adapter);
         carousel.setSelection(adapter.getCount()-1); //adapter.getCount()-1
         carousel.setSlowDownCoefficient(2);
         carousel.setSpacing(0.2f);
+
+        Button addButton = (Button)findViewById(R.id.add_botton);
+        addButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                adapter.addView();
+            }
+        });
     }
 
 
@@ -38,9 +43,11 @@ public class MainActivity extends ActionBarActivity {
         private int[] mResourceIds = {R.drawable.poster1, R.drawable.poster2, R.drawable.poster3, R.drawable.poster4,
             R.drawable.poster5};
 
+        private int mCount = mResourceIds.length;
+
         @Override
         public int getCount() {
-            return mResourceIds.length * 5;
+            return mCount;
         }
 
         @Override
@@ -66,6 +73,11 @@ public class MainActivity extends ActionBarActivity {
 
 
             return v;
+        }
+
+        public void addView(){
+            mCount++;
+            notifyDataSetChanged();
         }
     }
 
