@@ -61,7 +61,7 @@ public class MainActivity extends ActionBarActivity {
         }
 
         @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
+        public View getView(final int position, View convertView, ViewGroup parent) {
             MyFrame v;
             if (convertView == null) {
                 v = new MyFrame(MainActivity.this);
@@ -70,6 +70,12 @@ public class MainActivity extends ActionBarActivity {
             }
 
             v.setImageResource(mResourceIds[position % mResourceIds.length]);
+            v.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Toast.makeText(MainActivity.this, "clicked position:"+position,Toast.LENGTH_SHORT).show();
+                }
+            });
 
 
             return v;
