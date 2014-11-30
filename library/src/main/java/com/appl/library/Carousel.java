@@ -9,6 +9,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.*;
 import android.widget.Adapter;
+import android.widget.AdapterView;
 import android.widget.Scroller;
 
 /**
@@ -69,6 +70,8 @@ public class Carousel extends ViewGroup {
     protected int mRightEdge = NO_VALUE;
     protected int mLeftEdge = NO_VALUE;
 
+    private OnItemSelectedListener mOnItemSelectedListener;
+
     public Carousel(Context context) {
         this(context, null);
     }
@@ -109,6 +112,8 @@ public class Carousel extends ViewGroup {
             throw new IllegalArgumentException("Position index must be in range of adapter values (0 - getCount()-1)");
 
         mSelection = position;
+
+        reset();
     }
 
     @Override
@@ -218,10 +223,6 @@ public class Carousel extends ViewGroup {
         if(minDiff != Integer.MAX_VALUE) {
             mReverseOrderIndex = minDiffIndex;
         }
-//        //check for case in which last update was done with more elements and one element was removed in meantime
-//        if(oldReverseIndex > getChildCount() - 1){
-//            oldReverseIndex = getChildCount() - 1;
-//        }
 
         if(oldReverseIndex != mReverseOrderIndex){
             View oldSelected = getChildAt(oldReverseIndex);
@@ -231,6 +232,9 @@ public class Carousel extends ViewGroup {
             newSelected.setSelected(true);
 
             mSelection = mFirstVisibleChild + mReverseOrderIndex;
+            if(mOnItemSelectedListener != null){
+                mOnItemSelectedListener.onItemSelected(newSelected, mSelection);
+            }
         }
 
 
@@ -759,7 +763,15 @@ public class Carousel extends ViewGroup {
         mSlowDownCoefficient = c;
     }
 
-    public static class ViewCache <T extends View> {
+    public void setOnItemSelectedListener(OnItemSelectedListener onItemSelectedListener) {
+        mOnItemSelectedListener = onItemSelectedListener;
+    }
+
+    public interface OnItemSelectedListener {
+        void onItemSelected(View child, int position);
+    }
+
+    private static class ViewCache <T extends View> {
         private final LinkedList<WeakReference<T>> mCachedItemViews = new LinkedList<WeakReference<T>>();
 
         /**
