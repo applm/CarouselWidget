@@ -314,23 +314,19 @@ public class Carousel extends ViewGroup {
      * Remove all data, reset to initial state and attempt to refill
      */
     private void reset() {
-        int selectedLeft;
-        int selectedTop;
-
         if(mAdapter == null || mAdapter.getCount() == 0){
             return;
         }
 
-        if(mReverseOrderIndex < 0){
-            final int horizontalCenter = getWidth() / 2;
-            final int verticalCenter = getHeight() / 2;
-            selectedLeft = horizontalCenter - mChildWidth / 2;
-            selectedTop = verticalCenter - mChildHeight / 2;
-        } else {
-            View selectedView = getChildAt(mReverseOrderIndex);
-            selectedLeft = selectedView.getLeft();
-            selectedTop = selectedView.getTop();
+        if(getChildCount() == 0){
+            requestLayout();
+            return;
         }
+
+        View selectedView = getChildAt(mReverseOrderIndex);
+        int selectedLeft = selectedView.getLeft();
+        int selectedTop = selectedView.getTop();
+
 
         removeAllViewsInLayout();
         mRightEdge = NO_VALUE;
