@@ -314,12 +314,23 @@ public class Carousel extends ViewGroup {
      * Remove all data, reset to initial state and attempt to refill
      */
     private void reset() {
-        if (getChildCount() == 0 || mReverseOrderIndex < 0) {
+        int selectedLeft;
+        int selectedTop;
+
+        if(mAdapter == null || mAdapter.getCount() == 0){
             return;
         }
-        View selectedView = getChildAt(mReverseOrderIndex);
-        int selectedLeft = selectedView.getLeft();
-        int selectedTop = selectedView.getTop();
+
+        if(mReverseOrderIndex < 0){
+            final int horizontalCenter = getWidth() / 2;
+            final int verticalCenter = getHeight() / 2;
+            selectedLeft = horizontalCenter - mChildWidth / 2;
+            selectedTop = verticalCenter - mChildHeight / 2;
+        } else {
+            View selectedView = getChildAt(mReverseOrderIndex);
+            selectedLeft = selectedView.getLeft();
+            selectedTop = selectedView.getTop();
+        }
 
         removeAllViewsInLayout();
         mRightEdge = NO_VALUE;
@@ -372,9 +383,9 @@ public class Carousel extends ViewGroup {
 
         View child = getChildAt(0);
         int childRight = child.getRight();
-        int lastLeft = childRight - (int)(mChildWidth * mSpacing);
+        int newRight = childRight - (int)(mChildWidth * mSpacing);
 
-        while (lastLeft > leftScreenEdge && mFirstVisibleChild > 0) {
+        while (newRight > leftScreenEdge && mFirstVisibleChild > 0) {
             mFirstVisibleChild--;
 
             child = mAdapter.getView(mFirstVisibleChild, mCache.getCachedView(), this);
@@ -382,7 +393,7 @@ public class Carousel extends ViewGroup {
             mReverseOrderIndex++;
 
             addAndMeasureChild(child, LAYOUT_MODE_TO_BEFORE);
-            lastLeft = layoutChildToBefore(child, lastLeft);
+            newRight = layoutChildToBefore(child, newRight);
 
             if (mFirstVisibleChild <= 0) {
                 mLeftEdge = child.getLeft();
@@ -397,20 +408,20 @@ public class Carousel extends ViewGroup {
     protected void refillLeftToRight(final int leftScreenEdge, final int rightScreenEdge) {
 
         View child;
-        int lastRight;
+        int newLeft;
 
         child = getChildAt(getChildCount() - 1);
         int childLeft = child.getLeft();
-        lastRight = childLeft + (int)(mChildWidth * mSpacing);
+        newLeft = childLeft + (int)(mChildWidth * mSpacing);
 
-        while (lastRight < rightScreenEdge && mLastVisibleChild < mAdapter.getCount() - 1) {
+        while (newLeft < rightScreenEdge && mLastVisibleChild < mAdapter.getCount() - 1) {
             mLastVisibleChild++;
 
             child = mAdapter.getView(mLastVisibleChild, mCache.getCachedView(), this);
             child.setSelected(false);
 
             addAndMeasureChild(child, LAYOUT_MODE_AFTER);
-            lastRight = layoutChild(child, lastRight);
+            newLeft = layoutChild(child, newLeft);
 
             if (mLastVisibleChild >= mAdapter.getCount() - 1) {
                 mRightEdge = child.getRight();
