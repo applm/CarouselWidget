@@ -381,7 +381,7 @@ public class Carousel extends ViewGroup {
         int childRight = child.getRight();
         int newRight = childRight - (int)(mChildWidth * mSpacing);
 
-        while (newRight > leftScreenEdge && mFirstVisibleChild > 0) {
+        while (newRight - (int)(mChildWidth * (1.0f - mSpacing)) > leftScreenEdge && mFirstVisibleChild > 0) {
             mFirstVisibleChild--;
 
             child = mAdapter.getView(mFirstVisibleChild, mCache.getCachedView(), this);
@@ -410,7 +410,8 @@ public class Carousel extends ViewGroup {
         int childLeft = child.getLeft();
         newLeft = childLeft + (int)(mChildWidth * mSpacing);
 
-        while (newLeft < rightScreenEdge && mLastVisibleChild < mAdapter.getCount() - 1) {
+        while (newLeft + (int)(mChildWidth * (1.0f - mSpacing)) < rightScreenEdge && mLastVisibleChild < mAdapter
+            .getCount() - 1) {
             mLastVisibleChild++;
 
             child = mAdapter.getView(mLastVisibleChild, mCache.getCachedView(), this);
@@ -435,7 +436,7 @@ public class Carousel extends ViewGroup {
         // check if we should remove any views in the left
         View firstChild = getChildAt(0);
 
-        while (firstChild != null && firstChild.getRight() < leftScreenEdge && getChildCount() > 1) {
+        while (firstChild != null && firstChild.getLeft()+(mChildWidth * mSpacing)  < leftScreenEdge && getChildCount() > 1) {
 
             // remove view
             removeViewsInLayout(0, 1);
@@ -468,7 +469,8 @@ public class Carousel extends ViewGroup {
 
         // check if we should remove any views in the right
         View lastChild = getChildAt(getChildCount() - 1);
-        while (lastChild != null && lastChild.getLeft() > rightScreenEdge && getChildCount() > 1) {
+        while (lastChild != null && lastChild.getRight() - (mChildWidth * mSpacing)  > rightScreenEdge &&
+            getChildCount() > 1) {
             // remove the right view
             removeViewsInLayout(getChildCount() - 1, 1);
 
