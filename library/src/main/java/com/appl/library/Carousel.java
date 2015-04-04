@@ -369,6 +369,10 @@ public class Carousel extends ViewGroup {
         refillRightToLeft(leftScreenEdge);
     }
 
+    protected int getPartOfViewCoveredBySibling(){
+        return (int)(mChildWidth * (1.0f - mSpacing));
+    }
+
     /**
      * Checks and refills empty area on the left
      *
@@ -381,7 +385,7 @@ public class Carousel extends ViewGroup {
         int childRight = child.getRight();
         int newRight = childRight - (int)(mChildWidth * mSpacing);
 
-        while (newRight - (int)(mChildWidth * (1.0f - mSpacing)) > leftScreenEdge && mFirstVisibleChild > 0) {
+        while (newRight - getPartOfViewCoveredBySibling() > leftScreenEdge && mFirstVisibleChild > 0) {
             mFirstVisibleChild--;
 
             child = mAdapter.getView(mFirstVisibleChild, mCache.getCachedView(), this);
@@ -410,7 +414,7 @@ public class Carousel extends ViewGroup {
         int childLeft = child.getLeft();
         newLeft = childLeft + (int)(mChildWidth * mSpacing);
 
-        while (newLeft + (int)(mChildWidth * (1.0f - mSpacing)) < rightScreenEdge && mLastVisibleChild < mAdapter
+        while (newLeft + getPartOfViewCoveredBySibling() < rightScreenEdge && mLastVisibleChild < mAdapter
             .getCount() - 1) {
             mLastVisibleChild++;
 
@@ -492,19 +496,19 @@ public class Carousel extends ViewGroup {
 
     }
 
-    private int getChildCenter(View v) {
+    protected int getChildCenter(View v) {
         final int w = v.getRight() - v.getLeft();
         return v.getLeft() + w / 2;
     }
 
-    private int getChildCenter(int i) {
+    protected int getChildCenter(int i) {
         return getChildCenter(getChildAt(i));
     }
 
-    @Override
-    protected void dispatchDraw(Canvas canvas) {
-        super.dispatchDraw(canvas);
-    }
+//    @Override
+//    protected void dispatchDraw(Canvas canvas) {
+//        super.dispatchDraw(canvas);
+//    }
 
     @Override
     protected int getChildDrawingOrder(int childCount, int i) {
@@ -749,6 +753,7 @@ public class Carousel extends ViewGroup {
     }
 
     public void setSlowDownCoefficient(int c) {
+        if(c < 1) throw new IllegalArgumentException("Slowdown coeficient must be greater than 0");
         mSlowDownCoefficient = c;
     }
 

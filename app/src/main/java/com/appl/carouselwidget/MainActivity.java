@@ -13,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.*;
 
 import com.appl.library.Carousel;
+import com.appl.library.CoverFlowCarousel;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -22,12 +23,12 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Carousel carousel = (Carousel)findViewById(R.id.carousel);
+        CoverFlowCarousel carousel = (CoverFlowCarousel)findViewById(R.id.carousel);
         final MyAdapter adapter = new MyAdapter();
         carousel.setAdapter(adapter);
-        carousel.setSelection(adapter.getCount()-1); //adapter.getCount()-1
-        carousel.setSlowDownCoefficient(2);
-        carousel.setSpacing(0.2f);
+        carousel.setSelection(adapter.getCount()/2); //adapter.getCount()-1
+        //carousel.setSlowDownCoefficient(1);
+        carousel.setSpacing(0.5f);
 
         Button addButton = (Button)findViewById(R.id.add_botton);
         addButton.setOnClickListener(new View.OnClickListener() {
@@ -43,7 +44,7 @@ public class MainActivity extends ActionBarActivity {
         private int[] mResourceIds = {R.drawable.poster1, R.drawable.poster2, R.drawable.poster3, R.drawable.poster4,
             R.drawable.poster5};
 
-        private int mCount = mResourceIds.length;
+        private int mCount = mResourceIds.length * 5;
 
         @Override
         public int getCount() {
