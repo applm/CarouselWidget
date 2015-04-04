@@ -37,7 +37,7 @@ public class CoverFlowCarousel extends Carousel {
     /**
      * By enlarging this value, you can enlarge spacing in center of widget done by position adjustment
      */
-    private float mAdjustPositionMultiplier = 1.0f;
+    private float mAdjustPositionMultiplier = 0.8f;
 
     /**
      * Absolute value of rotation angle of cover at edge of widget in degrees
@@ -55,9 +55,9 @@ public class CoverFlowCarousel extends Carousel {
     private float mRadius = 2f;
 
     /**
-     * Radius of circle path which covers follow in coordinate space of matrix transformation. Used to scale offset
+     * Size multiplier used to simulate perspective
      */
-    private float mRadiusInMatrixSpace = 1000f;
+    private float mPerspectiveMultiplier = 1f;
 
     /**
      * Size of reflection as a fraction of original image (0-1)
@@ -77,8 +77,12 @@ public class CoverFlowCarousel extends Carousel {
     }
 
     private void setTransformation(View v){
-        v.setRotationY(getRotationAngle(getChildCenter(v)));
+        int c = getChildCenter(v);
+        v.setRotationY(getRotationAngle(c));
         v.setTranslationX(getChildAdjustPosition(v));
+        float scale = getScaleFactor(c) - getChildCircularPathZOffset(c);
+        v.setScaleX(scale);
+        v.setScaleY(scale);
     }
 
     @Override
@@ -96,6 +100,10 @@ public class CoverFlowCarousel extends Carousel {
 
     private float getRotationAngle(int childCenter){
         return -mMaxRotationAngle * getClampedRelativePosition(getRelativePosition(childCenter), mRotationThreshold * getWidgetSizeMultiplier());
+    }
+
+    private float getScaleFactor(int childCenter){
+        return 1 + (mMaxScaleFactor-1) * (1 - Math.abs(getClampedRelativePosition(getRelativePosition(childCenter), mScalingThreshold * getWidgetSizeMultiplier())));
     }
 
     /**
@@ -142,5 +150,26 @@ public class CoverFlowCarousel extends Carousel {
     private float getSpacingMultiplierOnCirlce(int childCenter){
         float x = getRelativePosition(childCenter)/mRadius;
         return (float) Math.sin(Math.acos(x));
+    }
+
+    /**
+     * Compute offset following path on circle
+     * @param childCenter
+     * @return offset from position on unitary circle
+     */
+    private float getOffsetOnCircle(int childCenter){
+        float x = getRelativePosition(childCenter)/mRadius;
+        if(x < -1.0f) x = -1.0f;
+        if(x > 1.0f) x = 1.0f;
+
+        return  (float) (1 - Math.sin(Math.acos(x)));
+    }
+
+    private float getChildCircularPathZOffset(int center){
+
+        final float v = getOffsetOnCircle(center);
+        final float z = mPerspectiveMultiplier * v;
+
+        return  z;
     }
 }
