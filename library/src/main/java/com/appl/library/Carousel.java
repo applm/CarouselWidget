@@ -69,7 +69,7 @@ public class Carousel extends ViewGroup {
     /**
      * Relative spacing value of Views in container. If <1 Views will overlap, if >1 Views will have spaces between them
      */
-    private float mSpacing = 0.5f;
+    protected float mSpacing = 0.5f;
     /**
      * Index of view in center of screen, which is most in foreground
      */
@@ -79,8 +79,8 @@ public class Carousel extends ViewGroup {
      */
     private int mSlowDownCoefficient = 1;
 
-    private int mChildWidth = 320;
-    private int mChildHeight = 320;
+    protected int mChildWidth = 320;
+    protected int mChildHeight = 320;
 
     private int mSelection;
     private Adapter mAdapter;

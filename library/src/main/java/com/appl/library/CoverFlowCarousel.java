@@ -1,6 +1,7 @@
 package com.appl.library;
 
 import android.content.Context;
+import android.graphics.Matrix;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -77,6 +78,7 @@ public class CoverFlowCarousel extends Carousel {
 
     private void setTransformation(View v){
         v.setRotationY(getRotationAngle(getChildCenter(v)));
+        v.setTranslationX(getChildAdjustPosition(v));
     }
 
     @Override
@@ -127,5 +129,18 @@ public class CoverFlowCarousel extends Carousel {
 
     private float getWidgetSizeMultiplier(){
         return ((float)mTuningWidgetSize)/((float)getWidth());
+    }
+
+    private float getChildAdjustPosition(View child) {
+        final int c = getChildCenter(child);
+        final float crp = getClampedRelativePosition(getRelativePosition(c), mAdjustPositionThreshold * getWidgetSizeMultiplier());
+        final float d = mChildWidth * mAdjustPositionMultiplier * mSpacing * crp * getSpacingMultiplierOnCirlce(c);
+
+        return d;
+    }
+
+    private float getSpacingMultiplierOnCirlce(int childCenter){
+        float x = getRelativePosition(childCenter)/mRadius;
+        return (float) Math.sin(Math.acos(x));
     }
 }
