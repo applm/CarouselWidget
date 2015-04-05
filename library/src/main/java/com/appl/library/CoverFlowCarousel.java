@@ -12,7 +12,7 @@ import android.widget.FrameLayout;
 /**
  * @author Martin Appl
  */
-public class CoverFlowCarousel extends Carousel implements ViewTreeObserver.OnPreDrawListener {
+public class CoverFlowCarousel extends Carousel {
 
     /**
      * Widget size on which was tuning of parameters done. This value is used to scale parameters on when widgets has different size
@@ -80,7 +80,7 @@ public class CoverFlowCarousel extends Carousel implements ViewTreeObserver.OnPr
     private final PorterDuffXfermode mXfermode = new PorterDuffXfermode(PorterDuff.Mode.DST_IN);
     private final Canvas mReflectionCanvas = new Canvas();
 
-    private boolean mInvalidated = false;
+    //private boolean mInvalidated = false;
 
     public CoverFlowCarousel(Context context) {
         super(context);
@@ -105,12 +105,11 @@ public class CoverFlowCarousel extends Carousel implements ViewTreeObserver.OnPr
 
     @Override
     protected void dispatchDraw(Canvas canvas) {
-        mInvalidated = false;
         int bitmask = Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG;
         canvas.setDrawFilter(new PaintFlagsDrawFilter(bitmask, bitmask));
         super.dispatchDraw(canvas);
     }
-    
+
 
     @Override
     public void computeScroll() {
@@ -139,6 +138,11 @@ public class CoverFlowCarousel extends Carousel implements ViewTreeObserver.OnPr
         } else {
             frame.setCover(v);
         }
+
+        //to enable drawing cache
+        if(android.os.Build.VERSION.SDK_INT >= 11) frame.setLayerType(LAYER_TYPE_SOFTWARE, null);
+        frame.setDrawingCacheEnabled(true);
+
         return frame;
     }
 
@@ -214,7 +218,7 @@ public class CoverFlowCarousel extends Carousel implements ViewTreeObserver.OnPr
         if(x < -1.0f) x = -1.0f;
         if(x > 1.0f) x = 1.0f;
 
-        return  (float) (1 - Math.sin(Math.acos(x)));
+        return (float) (1 - Math.sin(Math.acos(x)));
     }
 
     private float getChildCircularPathZOffset(int center){
@@ -267,18 +271,7 @@ public class CoverFlowCarousel extends Carousel implements ViewTreeObserver.OnPr
         return reflection;
     }
 
-    @Override
-    public boolean onPreDraw() { //when child view is about to be drawn we invalidate whole container
 
-        if(!mInvalidated){ //this is hack, no idea now is possible that this works, but fixes problem where not all area was redrawn
-            mInvalidated = true;
-            invalidate();
-            return false;
-        }
-
-        return true;
-
-    }
 
     private class CoverFrame extends FrameLayout {
         private Bitmap mReflectionCache;
@@ -296,18 +289,15 @@ public class CoverFlowCarousel extends Carousel implements ViewTreeObserver.OnPr
             if(cover.getLayoutParams() != null) setLayoutParams(cover.getLayoutParams());
 
             final FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
-            lp.leftMargin = 3;
-            lp.topMargin = 3;
-            lp.rightMargin = 3;
-            lp.bottomMargin = 3;
+            lp.leftMargin = 1;
+            lp.topMargin = 1;
+            lp.rightMargin = 1;
+            lp.bottomMargin = 1;
 
             if (cover.getParent()!=null && cover.getParent() instanceof ViewGroup) {
                 ViewGroup parent = (ViewGroup) cover.getParent();
                 parent.removeView(cover);
             }
-
-            //register observer to catch cover redraws
-            cover.getViewTreeObserver().addOnPreDrawListener(CoverFlowCarousel.this);
 
             addView(cover,lp);
         }
