@@ -1,14 +1,18 @@
 package com.appl.library;
 
 import android.content.Context;
-import android.graphics.Matrix;
+import android.graphics.*;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.widget.FrameLayout;
 
 /**
  * @author Martin Appl
  */
-public class CoverFlowCarousel extends Carousel {
+public class CoverFlowCarousel extends Carousel implements ViewTreeObserver.OnPreDrawListener {
 
     /**
      * Widget size on which was tuning of parameters done. This value is used to scale parameters on when widgets has different size
@@ -64,6 +68,20 @@ public class CoverFlowCarousel extends Carousel {
      */
     private float mReflectionHeight = 0.5f;
 
+    /**
+     * Starting opacity of reflection. Reflection fades from this value to transparency;
+     */
+    private int mReflectionOpacity = 0x70;
+
+    //reflection
+    private final Matrix mReflectionMatrix = new Matrix();
+    private final Paint mPaint = new Paint();
+    //private final Paint mReflectionPaint = new Paint();
+    private final PorterDuffXfermode mXfermode = new PorterDuffXfermode(PorterDuff.Mode.DST_IN);
+    private final Canvas mReflectionCanvas = new Canvas();
+
+    private boolean mInvalidated = false;
+
     public CoverFlowCarousel(Context context) {
         super(context);
     }
@@ -86,6 +104,15 @@ public class CoverFlowCarousel extends Carousel {
     }
 
     @Override
+    protected void dispatchDraw(Canvas canvas) {
+        mInvalidated = false;
+        int bitmask = Paint.FILTER_BITMAP_FLAG | Paint.ANTI_ALIAS_FLAG;
+        canvas.setDrawFilter(new PaintFlagsDrawFilter(bitmask, bitmask));
+        super.dispatchDraw(canvas);
+    }
+    
+
+    @Override
     public void computeScroll() {
         super.computeScroll();
         for(int i=0; i < getChildCount(); i++){
@@ -96,6 +123,23 @@ public class CoverFlowCarousel extends Carousel {
     @Override
     protected int getPartOfViewCoveredBySibling() {
         return 0;
+    }
+
+    @Override
+    protected View getViewFromAdapter(int position){
+        CoverFrame frame = (CoverFrame) mCache.getCachedView();
+        View recycled = null;
+        if(frame != null) {
+            recycled = frame.getChildAt(0);
+        }
+
+        View v = mAdapter.getView(position, recycled , this);
+        if(frame == null) {
+            frame = new CoverFrame(getContext(), v);
+        } else {
+            frame.setCover(v);
+        }
+        return frame;
     }
 
     private float getRotationAngle(int childCenter){
@@ -180,4 +224,130 @@ public class CoverFlowCarousel extends Carousel {
 
         return  z;
     }
+
+    /**
+     * Adds a view as a child view and takes care of measuring it.
+     * Wraps cover in its frame.
+     *
+     * @param child      The view to add
+     * @param layoutMode Either LAYOUT_MODE_LEFT or LAYOUT_MODE_RIGHT
+     * @return child which was actually added to container, subclasses can override to introduce frame views
+     */
+    protected View addAndMeasureChild(final View child, final int layoutMode) {
+        if (child.getLayoutParams() == null) child.setLayoutParams(new LayoutParams(mChildWidth,
+            mChildHeight));
+
+        final int index = layoutMode == LAYOUT_MODE_TO_BEFORE ? 0 : -1;
+        addViewInLayout(child, index, child.getLayoutParams(), true);
+
+        final int pwms = MeasureSpec.makeMeasureSpec(mChildWidth, MeasureSpec.EXACTLY);
+        final int phms = MeasureSpec.makeMeasureSpec(mChildHeight, MeasureSpec.EXACTLY);
+        measureChild(child, pwms, phms);
+        child.setDrawingCacheEnabled(isChildrenDrawnWithCacheEnabled());
+
+        return child;
+    }
+
+    private Bitmap createReflectionBitmap(Bitmap original){
+        final int w = original.getWidth();
+        final int h = original.getHeight();
+        final int rh = (int) (h * mReflectionHeight);
+        final int gradientColor = Color.argb(mReflectionOpacity, 0xff, 0xff, 0xff);
+
+        final Bitmap reflection = Bitmap.createBitmap(original, 0, rh, w, rh, mReflectionMatrix, false);
+
+        final LinearGradient shader = new LinearGradient(0, 0, 0, reflection.getHeight(), gradientColor, 0x00ffffff, Shader.TileMode.CLAMP);
+        mPaint.reset();
+        mPaint.setShader(shader);
+        mPaint.setXfermode(mXfermode);
+
+        mReflectionCanvas.setBitmap(reflection);
+        mReflectionCanvas.drawRect(0, 0, reflection.getWidth(), reflection.getHeight(), mPaint);
+
+        return reflection;
+    }
+
+    @Override
+    public boolean onPreDraw() { //when child view is about to be drawn we invalidate whole container
+
+        if(!mInvalidated){ //this is hack, no idea now is possible that this works, but fixes problem where not all area was redrawn
+            mInvalidated = true;
+            invalidate();
+            return false;
+        }
+
+        return true;
+
+    }
+
+    private class CoverFrame extends FrameLayout {
+        private Bitmap mReflectionCache;
+        private boolean mReflectionCacheInvalid = true;
+
+
+        public CoverFrame(Context context, View cover) {
+            super(context);
+            setCover(cover);
+        }
+
+        public void setCover(View cover){
+            removeAllViews();
+            mReflectionCacheInvalid = true;
+            if(cover.getLayoutParams() != null) setLayoutParams(cover.getLayoutParams());
+
+            final FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
+            lp.leftMargin = 3;
+            lp.topMargin = 3;
+            lp.rightMargin = 3;
+            lp.bottomMargin = 3;
+
+            if (cover.getParent()!=null && cover.getParent() instanceof ViewGroup) {
+                ViewGroup parent = (ViewGroup) cover.getParent();
+                parent.removeView(cover);
+            }
+
+            //register observer to catch cover redraws
+            cover.getViewTreeObserver().addOnPreDrawListener(CoverFlowCarousel.this);
+
+            addView(cover,lp);
+        }
+
+//        @Override
+//        protected void dispatchDraw(Canvas canvas) {
+//            canvas.setDrawFilter(new PaintFlagsDrawFilter(1, Paint.ANTI_ALIAS_FLAG));
+//            super.dispatchDraw(canvas);
+//        }
+
+
+        @Override
+        public Bitmap getDrawingCache(boolean autoScale) {
+            final Bitmap b = super.getDrawingCache(autoScale);
+
+            if(mReflectionCacheInvalid){
+                if(/*(mTouchState != TOUCH_STATE_FLING && mTouchState != TOUCH_STATE_ALIGN) || */mReflectionCache == null){
+                    try{
+                        mReflectionCache = createReflectionBitmap(b);
+                        mReflectionCacheInvalid = false;
+                    }
+                    catch (NullPointerException e){
+                        Log.e(VIEW_LOG_TAG, "Null pointer in createReflectionBitmap. Bitmap b=" + b, e);
+                    }
+                }
+            }
+            return b;
+        }
+
+        public void recycle(){ //todo add puttocache method and call recycle
+            if(mReflectionCache != null){
+                mReflectionCache.recycle();
+                mReflectionCache = null;
+            }
+            mReflectionCacheInvalid = true;
+
+            //removeAllViewsInLayout();
+        }
+
+    }
+
+
 }

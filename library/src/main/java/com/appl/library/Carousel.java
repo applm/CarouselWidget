@@ -42,6 +42,9 @@ public class Carousel extends ViewGroup {
      */
     protected static final int TOUCH_STATE_FLING = 2;
 
+    /** Aligning in progress */
+    protected static final int TOUCH_STATE_ALIGN = 3;
+
     private final Scroller mScroller = new Scroller(getContext());
     private VelocityTracker mVelocityTracker;
     protected int mTouchSlop;
@@ -49,7 +52,7 @@ public class Carousel extends ViewGroup {
     private int mMaximumVelocity;
     private float mLastMotionX;
 
-    private int mTouchState = TOUCH_STATE_RESTING;
+    protected int mTouchState = TOUCH_STATE_RESTING;
 
     private final DataSetObserver mDataObserver = new DataSetObserver() {
 
@@ -83,12 +86,12 @@ public class Carousel extends ViewGroup {
     protected int mChildHeight = 360;
 
     private int mSelection;
-    private Adapter mAdapter;
+    protected Adapter mAdapter;
 
     private int mFirstVisibleChild;
     private int mLastVisibleChild;
 
-    private final ViewCache<View> mCache = new ViewCache<>();
+    protected final ViewCache<View> mCache = new ViewCache<>();
 
     protected int mRightEdge = NO_VALUE;
     protected int mLeftEdge = NO_VALUE;
@@ -185,7 +188,7 @@ public class Carousel extends ViewGroup {
         }
         View v = null;
         if (getChildCount() == 0) {
-            v = mAdapter.getView(mSelection, null, this);
+            v = getViewFromAdapter(mSelection);
             addAndMeasureChild(v, LAYOUT_MODE_AFTER);
 
             final int horizontalCenter = getWidth() / 2;
@@ -373,6 +376,10 @@ public class Carousel extends ViewGroup {
         return (int)(mChildWidth * (1.0f - mSpacing));
     }
 
+    protected View getViewFromAdapter(int position){
+        return mAdapter.getView(position, mCache.getCachedView(), this);
+    }
+
     /**
      * Checks and refills empty area on the left
      *
@@ -388,7 +395,7 @@ public class Carousel extends ViewGroup {
         while (newRight - getPartOfViewCoveredBySibling() > leftScreenEdge && mFirstVisibleChild > 0) {
             mFirstVisibleChild--;
 
-            child = mAdapter.getView(mFirstVisibleChild, mCache.getCachedView(), this);
+            child = getViewFromAdapter(mFirstVisibleChild);
             child.setSelected(false);
             mReverseOrderIndex++;
 
@@ -418,7 +425,7 @@ public class Carousel extends ViewGroup {
             .getCount() - 1) {
             mLastVisibleChild++;
 
-            child = mAdapter.getView(mLastVisibleChild, mCache.getCachedView(), this);
+            child = getViewFromAdapter(mLastVisibleChild);
             child.setSelected(false);
 
             addAndMeasureChild(child, LAYOUT_MODE_AFTER);
@@ -765,7 +772,7 @@ public class Carousel extends ViewGroup {
         void onItemSelected(View child, int position);
     }
 
-    private static class ViewCache<T extends View> {
+    protected static class ViewCache<T extends View> {
         private final LinkedList<WeakReference<T>> mCachedItemViews = new LinkedList<WeakReference<T>>();
 
         /**
