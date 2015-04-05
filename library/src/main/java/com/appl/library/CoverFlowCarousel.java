@@ -275,7 +275,7 @@ public class CoverFlowCarousel extends Carousel {
 
     private class CoverFrame extends FrameLayout {
         private Bitmap mReflectionCache;
-        private boolean mReflectionCacheInvalid = true;
+        private boolean mReflectionCacheInvalid = false;
 
 
         public CoverFrame(Context context, View cover) {
@@ -285,7 +285,7 @@ public class CoverFlowCarousel extends Carousel {
 
         public void setCover(View cover){
             removeAllViews();
-            mReflectionCacheInvalid = true;
+            //mReflectionCacheInvalid = true; //todo uncomment after adding support for reflection
             if(cover.getLayoutParams() != null) setLayoutParams(cover.getLayoutParams());
 
             final FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
