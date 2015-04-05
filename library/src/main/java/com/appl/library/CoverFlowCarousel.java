@@ -78,7 +78,7 @@ public class CoverFlowCarousel extends Carousel {
 
     private void setTransformation(View v){
         int c = getChildCenter(v);
-        v.setRotationY(getRotationAngle(c));
+        v.setRotationY(getRotationAngle(c) - getAngleOnCircle(c));
         v.setTranslationX(getChildAdjustPosition(v));
         float scale = getScaleFactor(c) - getChildCircularPathZOffset(c);
         v.setScaleX(scale);
@@ -100,6 +100,14 @@ public class CoverFlowCarousel extends Carousel {
 
     private float getRotationAngle(int childCenter){
         return -mMaxRotationAngle * getClampedRelativePosition(getRelativePosition(childCenter), mRotationThreshold * getWidgetSizeMultiplier());
+    }
+
+    private float getAngleOnCircle(int childCenter){
+        float x = getRelativePosition(childCenter)/mRadius;
+        if(x < -1.0f) x = -1.0f;
+        if(x > 1.0f) x = 1.0f;
+
+        return (float) (Math.acos(x)/Math.PI*180.0f - 90.0f);
     }
 
     private float getScaleFactor(int childCenter){
